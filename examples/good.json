@@ -1,0 +1,52 @@
+{
+ "policies": [
+  {
+   "name": "hourly-xr",
+   "frequency_hours": 6,
+   "retention_days": 35,
+   "copy_region": "ap-hyderabad-1"
+  },
+  {
+   "name": "daily",
+   "frequency_hours": 24,
+   "retention_days": 14
+  },
+  {
+   "name": "dev-weekly",
+   "frequency_hours": 168,
+   "retention_days": 7
+  }
+ ],
+ "resources": [
+  {
+   "name": "orders-db",
+   "kind": "database",
+   "region": "ap-mumbai-1",
+   "tier": "critical",
+   "rpo_hours": 12,
+   "policy": "hourly-xr",
+   "last_backup": "2026-10-14T20:00:00",
+   "last_restore_test": "2026-08-20T10:00:00"
+  },
+  {
+   "name": "web-boot",
+   "kind": "boot_volume",
+   "region": "ap-mumbai-1",
+   "tier": "standard",
+   "rpo_hours": 48,
+   "policy": "daily",
+   "last_backup": "2026-10-14T02:00:00",
+   "last_restore_test": "2026-07-01T10:00:00"
+  },
+  {
+   "name": "scratch",
+   "kind": "block_volume",
+   "region": "ap-mumbai-1",
+   "tier": "dev",
+   "rpo_hours": 336,
+   "policy": "dev-weekly",
+   "last_backup": "2026-10-10T02:00:00",
+   "last_restore_test": null
+  }
+ ]
+}

@@ -1,0 +1,128 @@
+{
+ "policies": [
+  {
+   "name": "hourly-xr",
+   "frequency_hours": 6,
+   "retention_days": 35,
+   "copy_region": "ap-hyderabad-1"
+  },
+  {
+   "name": "daily",
+   "frequency_hours": 24,
+   "retention_days": 14
+  },
+  {
+   "name": "dev-weekly",
+   "frequency_hours": 168,
+   "retention_days": 7
+  },
+  {
+   "name": "slow",
+   "frequency_hours": 72,
+   "retention_days": 3,
+   "copy_region": "ap-mumbai-1"
+  },
+  {
+   "name": "keep-forever",
+   "frequency_hours": 24,
+   "retention_days": 400
+  },
+  {
+   "name": "unused",
+   "frequency_hours": 24,
+   "retention_days": 30
+  }
+ ],
+ "resources": [
+  {
+   "name": "naked-db",
+   "kind": "database",
+   "region": "ap-mumbai-1",
+   "tier": "critical",
+   "rpo_hours": 12,
+   "policy": null,
+   "last_backup": null,
+   "last_restore_test": null
+  },
+  {
+   "name": "typo-vol",
+   "kind": "block_volume",
+   "region": "ap-mumbai-1",
+   "tier": "standard",
+   "rpo_hours": 24,
+   "policy": "nope",
+   "last_backup": null,
+   "last_restore_test": null
+  },
+  {
+   "name": "stale-db",
+   "kind": "database",
+   "region": "ap-mumbai-1",
+   "tier": "critical",
+   "rpo_hours": 12,
+   "policy": "hourly-xr",
+   "last_backup": "2026-10-10T00:00:00",
+   "last_restore_test": "2026-01-01T00:00:00"
+  },
+  {
+   "name": "never",
+   "kind": "bucket",
+   "region": "ap-mumbai-1",
+   "tier": "standard",
+   "rpo_hours": 48,
+   "policy": "daily",
+   "last_backup": null,
+   "last_restore_test": null
+  },
+  {
+   "name": "slow-vol",
+   "kind": "block_volume",
+   "region": "ap-mumbai-1",
+   "tier": "standard",
+   "rpo_hours": 24,
+   "policy": "slow",
+   "last_backup": "2026-10-14T20:00:00",
+   "last_restore_test": "2026-09-01T00:00:00"
+  },
+  {
+   "name": "local-copy",
+   "kind": "database",
+   "region": "ap-mumbai-1",
+   "tier": "critical",
+   "rpo_hours": 12,
+   "policy": "slow",
+   "last_backup": "2026-10-14T20:00:00",
+   "last_restore_test": "2026-09-01T00:00:00"
+  },
+  {
+   "name": "nocopy",
+   "kind": "boot_volume",
+   "region": "ap-mumbai-1",
+   "tier": "critical",
+   "rpo_hours": 48,
+   "policy": "daily",
+   "last_backup": "2026-10-14T20:00:00",
+   "last_restore_test": "2026-09-01T00:00:00"
+  },
+  {
+   "name": "dev-hoard",
+   "kind": "block_volume",
+   "region": "ap-mumbai-1",
+   "tier": "dev",
+   "rpo_hours": 24,
+   "policy": "keep-forever",
+   "last_backup": "2026-10-14T20:00:00",
+   "last_restore_test": null
+  },
+  {
+   "name": "dev-bare",
+   "kind": "block_volume",
+   "region": "ap-mumbai-1",
+   "tier": "dev",
+   "rpo_hours": 24,
+   "policy": null,
+   "last_backup": null,
+   "last_restore_test": null
+  }
+ ]
+}

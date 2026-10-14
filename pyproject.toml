@@ -1,0 +1,16 @@
+[build-system]
+requires = ["setuptools>=61"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "oci-backup-readiness"
+version = "0.1.0"
+description = "Offline backup and disaster-recovery readiness checker for OCI-style resources on synthetic inventories"
+requires-python = ">=3.10"
+readme = "README.md"
+
+[project.scripts]
+bk-check = "bk_check.cli:main"
+
+[tool.setuptools.packages.find]
+where = ["src"]
