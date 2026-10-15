@@ -18,6 +18,8 @@ RULES = {
     "BK008": "Backup policy reference does not exist",
     "BK009": "Backup policy is not attached to any resource",
     "BK010": "Dev resource keeps backups longer than a year",
+    "BK011": "Estimated restore time exceeds the RTO",
+    "BK012": "Critical resource has no RTO and restore estimate",
 }
 
 

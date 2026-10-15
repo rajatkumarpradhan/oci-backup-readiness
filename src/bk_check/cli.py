@@ -15,6 +15,8 @@ def main(argv=None) -> int:
     ap = argparse.ArgumentParser(prog="bk-check", description="Offline backup and DR readiness check (synthetic/exported data).")
     ap.add_argument("inventory")
     ap.add_argument("--as-of", help="YYYY-MM-DDTHH:MM:SS reference time (default: now)")
+    ap.add_argument("--transfer-minutes", type=int, default=analysis.DEFAULT_TRANSFER_MINUTES,
+                    help="minutes added to the restore estimate when restore_from is 'copy' (default 60)")
     ap.add_argument("--output")
     ap.add_argument("--format", choices=["json", "sarif"], default="json", help="format of the --output file (default json)")
     ap.add_argument("--fail-on", choices=["high", "medium", "low"])
@@ -22,13 +24,16 @@ def main(argv=None) -> int:
     if a.format == "sarif" and not a.output:
         print("error: --format sarif needs --output", file=sys.stderr)
         return 1
+    if a.transfer_minutes < 0:
+        print("error: --transfer-minutes must be 0 or more", file=sys.stderr)
+        return 1
     try:
         now = model.parse_time(a.as_of, "--as-of") if a.as_of else datetime.now().replace(microsecond=0)
         inv = model.load_file(a.inventory)
     except (OSError, json.JSONDecodeError, model.ModelError) as e:
         print(f"error: {e}", file=sys.stderr)
         return 1
-    fs = analysis.analyze(inv, now)
+    fs = analysis.analyze(inv, now, a.transfer_minutes)
     for f in fs:
         print(f"[{f.severity.upper():6}] {f.rule} {f.subject}: {f.message}")
     print(f"{len(fs)} finding(s) across {len(inv.resources)} resource(s) and {len(inv.policies)} policy(ies).")

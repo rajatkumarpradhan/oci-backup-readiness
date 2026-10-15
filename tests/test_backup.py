@@ -42,7 +42,7 @@ class ExampleTests(unittest.TestCase):
         self.assertEqual(run(copy.deepcopy(GOOD)), [])
 
     def test_risky_triggers_every_rule(self):
-        self.assertEqual(rules(ex("risky.json")), {f"BK{n:03d}" for n in range(1, 11)})
+        self.assertEqual(rules(ex("risky.json")), {f"BK{n:03d}" for n in range(1, 13)})
 
     def test_sorted_by_severity(self):
         s = [analysis.SEV[f.severity] for f in run(ex("risky.json"))]
@@ -114,6 +114,68 @@ class RuleTests(unittest.TestCase):
         self.assertNotIn("BK010", rules(one(tier="dev", ret=365)))
         self.assertIn("BK010", rules(one(tier="dev", ret=366)))
         self.assertNotIn("BK010", rules(one(tier="standard", ret=400)))
+
+
+class RtoTests(unittest.TestCase):
+    def rto(self, rto, est, src="local", tier="standard", transfer=60):
+        d = one(tier=tier)
+        d["resources"][0].update(rto_minutes=rto, restore_minutes=est, restore_from=src)
+        return [f for f in analysis.analyze(model.load(d), NOW, transfer) if f.rule in ("BK011", "BK012")]
+
+    def test_boundary(self):
+        self.assertEqual(self.rto(120, 120), [])
+        f = self.rto(120, 121)
+        self.assertEqual([x.rule for x in f], ["BK011"])
+        self.assertEqual(f[0].evidence, {"estimate_minutes": 121, "rto_minutes": 120})
+
+    def test_copy_adds_allowance(self):
+        self.assertEqual(self.rto(120, 60, "copy"), [])
+        self.assertEqual(len(self.rto(120, 61, "copy")), 1)
+        self.assertEqual(self.rto(120, 61, "copy", transfer=59), [])
+
+    def test_local_ignores_allowance(self):
+        self.assertEqual(self.rto(120, 120, "local", transfer=500), [])
+
+    def test_zero_allowance(self):
+        self.assertEqual(self.rto(120, 120, "copy", transfer=0), [])
+
+    def test_severity_by_tier(self):
+        self.assertEqual(self.rto(10, 20, tier="critical")[0].severity, "high")
+        self.assertEqual(self.rto(10, 20, tier="standard")[0].severity, "medium")
+
+    def test_missing_estimate_only_flagged_for_critical(self):
+        for tier, expect in (("critical", ["BK012"]), ("standard", []), ("dev", [])):
+            d = one(tier=tier)
+            self.assertEqual([f.rule for f in run(d) if f.rule == "BK012"], expect)
+
+    def test_half_filled_pair_counts_as_missing(self):
+        d = one(tier="critical")
+        d["resources"][0]["rto_minutes"] = 60
+        self.assertIn("BK012", rules(d))
+
+    def test_no_estimate_check_without_policy(self):
+        d = one(tier="critical", policy=None)
+        d["policies"] = []
+        self.assertNotIn("BK012", rules(d))
+
+    def test_validation(self):
+        for field, val in (("rto_minutes", 0), ("restore_minutes", True), ("restore_minutes", "5"), ("restore_from", "tape"),
+                           ("rto_minutes", 60 * 24 * 30 + 1)):
+            with self.subTest(field=field, val=val):
+                d = one()
+                d["resources"][0][field] = val
+                with self.assertRaises(model.ModelError):
+                    model.load(d)
+
+    def test_cli_transfer_minutes(self):
+        a = [os.path.join(EX, "risky.json"), "--as-of", "2026-10-15T00:00:00"]
+        self.assertEqual(main(a + ["--transfer-minutes", "-1"]), 1)
+        with tempfile.TemporaryDirectory() as t:
+            def count(m):
+                out = os.path.join(t, "r.json")
+                main(a + ["--transfer-minutes", str(m), "--output", out])
+                return sum(f["rule"] == "BK011" for f in json.load(open(out, encoding="utf-8"))["findings"])
+            self.assertGreater(count(60), count(0))
 
 
 class ValidationTests(unittest.TestCase):

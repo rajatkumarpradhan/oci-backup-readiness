@@ -10,6 +10,7 @@ SEV = {"high": 0, "medium": 1, "low": 2}
 MIN_RETENTION = {"critical": 35, "standard": 14, "dev": 7}
 RESTORE_TEST_MAX_DAYS = 180
 DEV_RETENTION_MAX = 365
+DEFAULT_TRANSFER_MINUTES = 60
 NO_BACKUP_SEVERITY = {"critical": "high", "standard": "high", "dev": "low"}
 
 
@@ -25,7 +26,7 @@ class Finding:
         return asdict(self)
 
 
-def analyze(inv: Inventory, now: datetime) -> list[Finding]:
+def analyze(inv: Inventory, now: datetime, transfer_minutes: int = DEFAULT_TRANSFER_MINUTES) -> list[Finding]:
     out: list[Finding] = []
     used = set()
     for r in inv.resources:
@@ -37,6 +38,15 @@ def analyze(inv: Inventory, now: datetime) -> list[Finding]:
             out.append(Finding("BK001", NO_BACKUP_SEVERITY[r.tier], sub, f"No backup policy ({r.tier} tier).", {"tier": r.tier}))
         elif pol is None:
             out.append(Finding("BK008", "high", sub, f"Backup policy {r.policy!r} does not exist.", {"policy": r.policy}))
+        if r.rto_minutes is not None and r.restore_minutes is not None:
+            total = r.restore_minutes + (transfer_minutes if r.restore_from == "copy" else 0)
+            if total > r.rto_minutes:
+                out.append(Finding("BK011", "high" if r.tier == "critical" else "medium", sub,
+                                   f"Estimated restore {total} min ({r.restore_minutes} + {total - r.restore_minutes} cross-region allowance) exceeds the {r.rto_minutes} min RTO.",
+                                   {"estimate_minutes": total, "rto_minutes": r.rto_minutes}))
+        elif r.tier == "critical" and r.policy is not None:
+            out.append(Finding("BK012", "medium", sub, "Critical resource has no RTO and restore estimate, so recovery time is unchecked.",
+                               {"rto_minutes": r.rto_minutes, "restore_minutes": r.restore_minutes}))
         if pol is not None:
             if pol.frequency_hours > r.rpo_hours:
                 out.append(Finding("BK003", "high", sub, f"Policy runs every {pol.frequency_hours}h but the RPO is {r.rpo_hours}h.",

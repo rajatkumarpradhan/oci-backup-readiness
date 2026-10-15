@@ -62,7 +62,9 @@
    "rpo_hours": 12,
    "policy": "hourly-xr",
    "last_backup": "2026-10-10T00:00:00",
-   "last_restore_test": "2026-01-01T00:00:00"
+   "last_restore_test": "2026-01-01T00:00:00",
+   "rto_minutes": 60,
+   "restore_minutes": 45
   },
   {
    "name": "never",
@@ -82,7 +84,10 @@
    "rpo_hours": 24,
    "policy": "slow",
    "last_backup": "2026-10-14T20:00:00",
-   "last_restore_test": "2026-09-01T00:00:00"
+   "last_restore_test": "2026-09-01T00:00:00",
+   "rto_minutes": 120,
+   "restore_minutes": 90,
+   "restore_from": "copy"
   },
   {
    "name": "local-copy",
