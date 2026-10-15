@@ -41,6 +41,9 @@ class Resource:
     policy: str | None
     last_backup: datetime | None
     last_restore_test: datetime | None
+    rto_minutes: int | None = None
+    restore_minutes: int | None = None
+    restore_from: str = "local"
 
 
 @dataclass
@@ -63,6 +66,16 @@ def _int(v, what, lo, hi):
 
 def _opt_time(v, what):
     return None if v is None else parse_time(v, what)
+
+
+def _opt_int(v, what):
+    return None if v is None else _int(v, what, 1, 60 * 24 * 30)
+
+
+def _source(v, what):
+    if v not in ("local", "copy"):
+        raise ModelError(f"{what} must be 'local' or 'copy', got {v!r}")
+    return v
 
 
 def load(data: dict) -> Inventory:
@@ -94,7 +107,10 @@ def load(data: dict) -> Inventory:
                                 _int(r["rpo_hours"], f"{w}.rpo_hours", 1, 24 * 365),
                                 _str(pol, f"{w}.policy") if pol is not None else None,
                                 _opt_time(r.get("last_backup"), f"{w}.last_backup"),
-                                _opt_time(r.get("last_restore_test"), f"{w}.last_restore_test")))
+                                _opt_time(r.get("last_restore_test"), f"{w}.last_restore_test"),
+                                _opt_int(r.get("rto_minutes"), f"{w}.rto_minutes"),
+                                _opt_int(r.get("restore_minutes"), f"{w}.restore_minutes"),
+                                _source(r.get("restore_from", "local"), f"{w}.restore_from")))
     except (KeyError, TypeError, AttributeError) as e:
         raise ModelError(f"invalid model: {e!r}") from e
     return Inventory(pols, res)
