@@ -1,6 +1,6 @@
 # oci-backup-readiness
 
-Offline check of backup and disaster-recovery settings for OCI-style resources (boot volumes, block volumes, databases, buckets). It reads a JSON inventory, applies 10 rules and prints findings by severity. It can also write JSON or SARIF 2.1.0.
+Offline check of backup and disaster-recovery settings for OCI-style resources (boot volumes, block volumes, databases, buckets). It reads a JSON inventory, applies 12 rules and prints findings by severity. It can also write JSON or SARIF 2.1.0.
 
 This is a portfolio project. The inventory format is a simplified schema I made up, not the OCI API shape. The data in `examples/` is synthetic. Nothing here has been run against a real tenancy, it calls no OCI API, and a clean result says nothing about whether a restore would actually work. The thresholds (retention minimums per tier, 180-day restore test limit) are my own assumptions, not an OCI or industry standard.
 
@@ -28,6 +28,12 @@ bk-check examples/risky.json --as-of 2026-10-15T00:00:00 --output report.sarif -
 | BK008 | high | resource points at a policy that does not exist |
 | BK009 | low | policy attached to nothing |
 | BK010 | low | dev resource keeping backups over 365 days |
+| BK011 | high (critical) / medium | estimated restore time longer than the RTO |
+| BK012 | medium | critical resource with a policy but no RTO and restore estimate |
+
+## Recovery time (RTO)
+
+Give a resource `rto_minutes` and `restore_minutes`. BK011 compares them. With `"restore_from": "copy"` (restoring from the cross-region copy) the check adds a transfer allowance, 60 minutes by default, set with `--transfer-minutes`. Both numbers are supplied by you: the tool does not measure restores and the allowance is a flat guess, not a model of data size or bandwidth. If only one of the two is given, it counts as missing.
 
 ## Limits
 
@@ -42,4 +48,4 @@ bk-check examples/risky.json --as-of 2026-10-15T00:00:00 --output report.sarif -
 python -m unittest discover -s tests -v
 ```
 
-Tests cover each boundary (exactly at the RPO, 180 vs 181 days, retention minus one, 365 vs 366 days), the missing-policy case, validation errors, CLI exit codes and SARIF. `examples/good.json` must produce zero findings and `examples/risky.json` must trigger all 10 rules.
+Tests cover each boundary (exactly at the RPO, 180 vs 181 days, retention minus one, 365 vs 366 days), the missing-policy case, validation errors, CLI exit codes and SARIF. `examples/good.json` must produce zero findings and `examples/risky.json` must trigger all 12 rules.
