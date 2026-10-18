@@ -38,7 +38,7 @@ class Resource:
     region: str
     tier: str
     rpo_hours: int
-    policy: str | None
+    policies: list[str]
     last_backup: datetime | None
     last_restore_test: datetime | None
     rto_minutes: int | None = None
@@ -102,10 +102,19 @@ def load(data: dict) -> Inventory:
                 raise ModelError(f"{w}.kind must be one of {sorted(KINDS)}")
             if tier not in TIERS:
                 raise ModelError(f"{w}.tier must be one of {sorted(TIERS)}")
-            pol = r.get("policy")
+            names = []
+            single = r.get("policy")
+            if single is not None:
+                names.append(_str(single, f"{w}.policy"))
+            plist = r.get("policies", [])
+            if not isinstance(plist, list) or any(not isinstance(x, str) or not x.strip() for x in plist):
+                raise ModelError(f"{w}.policies must be a list of policy names")
+            names.extend(plist)
+            if len(set(names)) != len(names):
+                raise ModelError(f"{w}: duplicate policy name in the resource's policy list")
             res.append(Resource(name, kind, _str(r["region"], f"{w}.region"), tier,
                                 _int(r["rpo_hours"], f"{w}.rpo_hours", 1, 24 * 365),
-                                _str(pol, f"{w}.policy") if pol is not None else None,
+                                names,
                                 _opt_time(r.get("last_backup"), f"{w}.last_backup"),
                                 _opt_time(r.get("last_restore_test"), f"{w}.last_restore_test"),
                                 _opt_int(r.get("rto_minutes"), f"{w}.rto_minutes"),
