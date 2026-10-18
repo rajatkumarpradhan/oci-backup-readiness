@@ -14,12 +14,13 @@ RULES = {
     "BK004": "Retention is below the tier minimum",
     "BK005": "Critical resource has no cross-region copy",
     "BK006": "Backup copy region equals the resource region",
-    "BK007": "No restore test, or restore test is stale",
+    "BK007": "No restore test recorded",
     "BK008": "Backup policy reference does not exist",
     "BK009": "Backup policy is not attached to any resource",
     "BK010": "Dev resource keeps backups longer than a year",
     "BK011": "Estimated restore time exceeds the RTO",
     "BK012": "Critical resource has no RTO and restore estimate",
+    "BK013": "Restore-test cadence missed for the resource tier",
 }
 
 
