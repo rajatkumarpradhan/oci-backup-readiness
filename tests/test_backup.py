@@ -42,7 +42,7 @@ class ExampleTests(unittest.TestCase):
         self.assertEqual(run(copy.deepcopy(GOOD)), [])
 
     def test_risky_triggers_every_rule(self):
-        self.assertEqual(rules(ex("risky.json")), {f"BK{n:03d}" for n in range(1, 13)})
+        self.assertEqual(rules(ex("risky.json")), {f"BK{n:03d}" for n in range(1, 14)})
 
     def test_sorted_by_severity(self):
         s = [analysis.SEV[f.severity] for f in run(ex("risky.json"))]
@@ -96,13 +96,23 @@ class RuleTests(unittest.TestCase):
         self.assertIn("BK006", rules(one(copy_region="ap-mumbai-1")))
         self.assertNotIn("BK006", rules(one(copy_region="ap-hyderabad-1")))
 
-    def test_restore_test_boundary(self):
-        self.assertNotIn("BK007", rules(one(test="2026-04-18T00:00:00")))    # exactly 180 days
-        self.assertIn("BK007", rules(one(test="2026-04-17T00:00:00")))       # 181 days
-        self.assertIn("BK007", rules(one(test=None)))
+    def test_restore_test_cadence_boundary(self):
+        self.assertNotIn("BK013", rules(one(test="2026-04-18T00:00:00")))    # exactly 180 days on the standard cadence
+        self.assertIn("BK013", rules(one(test="2026-04-17T00:00:00")))       # 181 days: one missed cycle
+        self.assertNotIn("BK007", rules(one(test="2026-04-17T00:00:00")))    # stale is BK013, not BK007
+        self.assertIn("BK007", rules(one(test=None)))                        # never tested is still BK007
+
+    def test_restore_test_cadence_per_tier(self):
+        # critical tests every 90 days, standard every 180
+        self.assertIn("BK013", rules(one(tier="critical", test="2026-07-16T00:00:00")))     # 91 days
+        self.assertNotIn("BK013", rules(one(tier="critical", test="2026-07-17T00:00:00")))  # 90 days
+        self.assertNotIn("BK013", rules(one(tier="standard", test="2026-07-16T00:00:00")))
+        f = [x for x in run(one(tier="critical", test="2026-01-01T00:00:00")) if x.rule == "BK013"]
+        self.assertEqual(f[0].evidence["missed_cycles"], 3)                                 # 287 days // 90
 
     def test_restore_test_not_required_for_dev(self):
         self.assertNotIn("BK007", rules(one(tier="dev", test=None)))
+        self.assertNotIn("BK013", rules(one(tier="dev", test="2020-01-01T00:00:00")))
 
     def test_unused_policy(self):
         d = one()
